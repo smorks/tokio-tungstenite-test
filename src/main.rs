@@ -1,16 +1,20 @@
 use std::time::Duration;
 
+use async_std::task;
+use async_tungstenite::tungstenite::Message;
 use futures::{pin_mut, select, FutureExt};
 use futures_util::StreamExt;
-use tokio_tungstenite::tungstenite::Message;
 use url::Url;
 
-#[tokio::main]
-async fn main() {
+fn main() {
+    task::block_on(run());
+}
+
+async fn run() {
     let url = "wss://lemmy.ca/api/v3/ws";
     let req_url = Url::parse(url).expect("invalid url");
 
-    let (ws, _r) = tokio_tungstenite::connect_async(req_url)
+    let (ws, _r) = async_tungstenite::async_std::connect_async(req_url)
         .await
         .expect("error connecting to websocket");
 
@@ -27,11 +31,11 @@ async fn main() {
         })
         .fuse();
 
-    let sleep = tokio::time::sleep(Duration::from_secs(30)).fuse();
+    let sleep = task::sleep(Duration::from_secs(30)).fuse();
 
     pin_mut!(ws_read, fwd_to_ws, sleep);
 
-    let do_stuff_join = tokio::spawn(do_stuff(tx));
+    let do_stuff_join = task::spawn(do_stuff(tx));
 
     select! {
         _ = ws_read => println!("ws_read done"),
@@ -52,7 +56,7 @@ async fn do_stuff(tx: futures::channel::mpsc::UnboundedSender<Message>) {
     println!("doing stuff...");
     // if login() isn't called, then Ping messages are read, but then fwd_to_ws ends when this function ends?
     login(tx);
-    let _slp = tokio::time::sleep(Duration::from_secs(10)).await;
+    let _slp = task::sleep(Duration::from_secs(10)).await;
     println!("done stuff.");
 }
 
