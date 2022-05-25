@@ -35,7 +35,7 @@ async fn run() {
 
     pin_mut!(ws_read, fwd_to_ws, sleep);
 
-    let do_stuff_join = task::spawn(do_stuff(tx));
+    let do_stuff_join = task::spawn(do_stuff(tx.clone()));
 
     select! {
         _ = ws_read => println!("ws_read done"),
